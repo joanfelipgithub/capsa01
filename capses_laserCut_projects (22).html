@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finger Joint Box Configurator - Ultimate Edition</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0ede8;color:#1a1a1a;padding:1.5rem}
+h1{font-size:18px;font-weight:600;margin-bottom:1.25rem;color:#111;letter-spacing:-0.3px}
+
+.controls-container {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.dims{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:8px;
+  margin-bottom:1rem;
+}
+.dim{
+  background:#f9f9f9;
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:0.65rem 0.75rem;
+}
+.dim label{font-size:11px;color:#888;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.4px}
+.dim input{width:100%;font-size:16px;font-weight:600;border:none;background:transparent;color:#111;outline:none}
+
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  color: #555;
+}
+.zoom-control input[type=range] {
+  flex: 1;
+  max-width: 300px;
+  cursor: pointer;
+}
+
+.legend{display:flex;gap:20px;margin-bottom:1.25rem;font-size:12px;color:#555;align-items:center;flex-wrap:wrap;padding:10px 14px;background:#fff;border:1px solid #ddd;border-radius:8px}
+.leg-box{width:14px;height:14px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+
+/* === Orthographic projection layout === */
+.ortho-container {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+.ortho-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 1rem;
+}
+.ortho-grid {
+  display: grid;
+  grid-template-columns: var(--col-left) var(--col-front) var(--col-right) var(--col-back);
+  grid-template-rows: var(--row-top) var(--row-mid) var(--row-bottom);
+  gap: 8px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/* Named grid areas */
+.ortho-cell-top    { grid-column:2; grid-row:1; }
+.ortho-cell-front  { grid-column:2; grid-row:2; }
+.ortho-cell-bottom { grid-column:2; grid-row:3; }
+.ortho-cell-left   { grid-column:1; grid-row:2; }
+.ortho-cell-right  { grid-column:3; grid-row:2; }
+.ortho-cell-back   { grid-column:4; grid-row:2; }
+
+.ortho-grid .panel-wrap {
+  position: relative;
+}
+.ortho-cell-top .panel-wrap::after,
+.ortho-cell-bottom .panel-wrap::after {
+  content:'';
+  position:absolute;
+  left:50%; top:0; bottom:0;
+  width:1px;
+  background: rgba(26,111,186,0.12);
+  pointer-events:none;
+}
+.ortho-cell-left .panel-wrap::after,
+.ortho-cell-right .panel-wrap::after,
+.ortho-cell-back .panel-wrap::after {
+  content:'';
+  position:absolute;
+  top:50%; left:0; right:0;
+  height:1px;
+  background: rgba(26,111,186,0.12);
+  pointer-events:none;
+}
+
+.ortho-cell {
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compact-panel .panel-dims,
+.compact-panel .panel-hint {
+  display: none !important;
+}
+
+.panel-wrap {
+  background: #fafaf9;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+.panel-name{font-size:11px;font-weight:700;color:#111;text-align:center;text-transform:uppercase;letter-spacing:0.6px}
+.panel-dims{font-size:9px;color:#aaa;text-align:center;margin-bottom:1px}
+
+canvas.panel {
+  display: block;
+  border-radius: 4px;
+  background: #f7f5f2;
+}
+
+.panel-hint{
+  font-size:9px;color:#aaa;text-align:center;
+  min-height:28px;
+  padding:3px 4px;
+  border-radius:5px;
+  cursor:default;
+  transition:background 0.15s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  user-select:none;
+}
+.panel-hint:hover{background:rgba(26,111,186,0.06);}
+
+.isometric-section {
+  background: #fff;
+  border: 1.5px solid #ddd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.isometric-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  color: #111;
+}
+.isometric-canvas-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: #f7f5f2;
+  border-radius: 8px;
+  padding: 10px;
+}
+#isoCanvas {
+  max-width: 100%;
+  height: auto;
+  background: #f7f5f2;
+}
+
+.main-views{display:flex;gap:14px;align-items:flex-start;margin-bottom:1.25rem}
+.main-views .ortho-container{flex:1 1 0;min-width:0;margin-bottom:0;overflow-x:auto}
+.main-views .isometric-section{flex:0 0 420px;width:420px;margin-bottom:0}
+#isoCanvas{width:100% !important;height:340px !important}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions button{flex:1;min-width:130px;padding:11px 16px;font-size:14px;font-weight:500;cursor:pointer;border-radius:8px;border:1.5px solid #ccc;background:#fff;color:#333;transition:all 0.15s}
+.actions button:hover{background:#f0ede8;border-color:#bbb}
+.actions button.primary{border-color:#1a6fba;background:#1a6fba;color:#fff}
+.actions button.primary:hover{background:#155d9e;border-color:#155d9e}
+
+.io-section {
+  background: #e2dfda;
+  border: 1px dashed #b5b2ad;
+}
+.io-section:hover {
+  background: #dad7d1 !important;
+}
+#fileInput {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<h1>Finger joint box configurator</h1>
+
+<div class="controls-container">
+  <div class="dims">
+    <div class="dim"><label>Width (W)</label><input type="number" id="dW" value="120" min="10"></div>
+    <div class="dim"><label>Depth (D)</label><input type="number" id="dD" value="80" min="10"></div>
+    <div class="dim"><label>Height (H)</label><input type="number" id="dH" value="60" min="10"></div>
+    <div class="dim"><label>Thickness (mm)</label><input type="number" id="dT" value="3" min="1"></div>
+    <div class="dim"><label>Gap (mm)</label><input type="number" id="dGap" value="20" min="0"></div>
+  </div>
+  
+  <div class="zoom-control">
+    <label for="cameraZoomRange">⚙ Panel Grid Zoom:</label>
+    <input type="range" id="cameraZoomRange" min="150" max="1200" value="400" style="flex: 1; cursor: pointer;">
+    <span id="zoomValue">220px</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="leg-box" style="background:#1a6fba"></span>Tab — protrudes out</span>
+  <span><span class="leg-box" style="background:#c0392b"></span>Slot — cut inward</span>
+  <span style="color:#ccc">|</span>
+  <span>Click an edge on any panel to toggle Tab/Slot · Hover + scroll wheel or +/− to change finger count · 3D view is read-only</span>
+</div>
+
+<div class="main-views">
+<div class="ortho-container">
+  <div class="ortho-title">Orthographic Projection — First Angle</div>
+  <div class="ortho-grid" id="panelsGrid"></div>
+</div>
+
+<div class="isometric-section">
+  <div class="isometric-title">3D Exploded Isometric Assembly View</div>
+  <div class="isometric-canvas-container">
+    <canvas id="isoCanvas" width="800" height="340"></canvas>
+    
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:center;font-size:13px;margin-top:10px;width:100%;">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="perspectiveProj" checked> Perspective Projection
+      </label>
+      <div style="display:flex;gap:12px;width:100%;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+                <span style="color:#666;font-size:12px;white-space:nowrap;">Explode:</span>
+                <input type="range" id="explodeRange" min="0" max="100" value="20" style="flex:1;cursor:pointer;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
+                <span style="color:#666;font-size:12px;white-space:nowrap;">3D Zoom:</span>
+                <input type="range" id="isoZoomRange" min="150" max="1000" value="400" style="flex:1;cursor:pointer;">
+            </div>
+       </div>
+    </div>
+  </div>
+</div>
+</div><div class="actions">
+  <button onclick="resetAll()">↺ Reset to default</button>
+  <button class="io-section" onclick="exportProject()">💾 Export Project (.json)</button>
+  <button class="io-section" onclick="triggerFileInput()">📂 Load Project</button>
+  <input type="file" id="fileInput" accept=".json" onchange="importProject(event)">
+  
+  <button onclick="downloadSVG()" style="border-color:#27ae60;color:#27ae60;">⬇ Download SVG (laser)</button>
+  <button onclick="downloadIsometricSCR()">📊 Download Isometric .scr</button>
+  <button class="primary" onclick="downloadSCR()">&#8659; Download 2D Flat .scr</button>
+</div>
+
+<script>
+/*=====================================================================
+  1️⃣ CONSTANTS, DEFAULTS, GLOBAL STATE
+=====================================================================*/
+const FACES = [
+  { id:'top',    label:'Top',    wKey:'W', hKey:'D' },
+  { id:'bottom', label:'Bottom', wKey:'W', hKey:'D' },
+  { id:'front',  label:'Front',  wKey:'W', hKey:'H' },
+  { id:'back',   label:'Back',   wKey:'W', hKey:'H' },
+  { id:'left',   label:'Left',   wKey:'D', hKey:'H' },
+  { id:'right',  label:'Right',  wKey:'D', hKey:'H' },
+];
+
+const EDGES = ['N','E','S','W'];
+const ENAME = {N:'North',S:'South',E:'East',W:'West'};
+const TAB_COL  = '#1a6fba';
+const SLOT_COL = '#c0392b';
+
+const DEFAULT_PRESET = {
+  "dimensions": {
+    "W": 120,
+    "D": 80,
+    "H": 60,
+    "T": 3,
+    "gap": 20
+  },
+  "faceStates": {
+    "top": {
+      "N": { "isTab": false, "fingers": 5 },
+      "E": { "isTab": false, "fingers": 3 },
+      "S": { "isTab": false, "fingers": 5 },
+      "W": { "isTab": false, "fingers": 3 }
+    },
+    "bottom": {
+      "N": { "isTab": false, "fingers": 5 },
+      "E": { "isTab": false, "fingers": 3 },
+      "S": { "isTab": false, "fingers": 5 },
+      "W": { "isTab": false, "fingers": 3 }
+    },
+    "front": {
+      "N": { "isTab": true, "fingers": 5 },
+      "E": { "isTab": true, "fingers": 3 },
+      "S": { "isTab": true, "fingers": 5 },
+      "W": { "isTab": true, "fingers": 3 }
+    },
+    "back": {
+      "N": { "isTab": true, "fingers": 5 },
+      "E": { "isTab": true, "fingers": 3 },
+      "S": { "isTab": true, "fingers": 5 },
+      "W": { "isTab": true, "fingers": 3 }
+    },
+    "left": {
+      "N": { "isTab": true, "fingers": 3 },
+      "E": { "isTab": false, "fingers": 3 },
+      "S": { "isTab": true, "fingers": 3 },
+      "W": { "isTab": false, "fingers": 3 }
+    },
+    "right": {
+      "N": { "isTab": true, "fingers": 3 },
+      "E": { "isTab": false, "fingers": 3 },
+      "S": { "isTab": true, "fingers": 3 },
+      "W": { "isTab": false, "fingers": 3 }
+    }
+  }
+};
+
+let state = {};
+let geometry = [];   // Stores Face objects (world 3D coordinates)
+let viewMatrix = null;
+let needsRender = true; 
+let hoverState = {}; // Hover state on the 3D canvas: {faceId, edge, isTab}
+
+/* Orbiting Camera parameters */
+const camera = {
+  radius: 400,
+  azimuth: Math.PI / 4,
+  elevation: Math.PI / 6,
+  target: { x: 0, y: 0, z: 0 },
+  perspective: true, // Controlled by your checkbox
+  fov: 45 * Math.PI / 180
+};
+
+/*=====================================================================
+  2️⃣ DIMENSION & HIT HELPERS
+=====================================================================*/
+function getDims(){
+  return {
+    W:   Math.max(10, parseFloat(document.getElementById('dW').value)||120),
+    D:   Math.max(10, parseFloat(document.getElementById('dD').value)||80),
+    H:   Math.max(10, parseFloat(document.getElementById('dH').value)||60),
+    T:   Math.max(1,  parseFloat(document.getElementById('dT').value)||3),
+    gap: parseFloat(document.getElementById('dGap').value)||20
+  };
+}
+
+function resetAll(){
+  document.getElementById('dW').value = DEFAULT_PRESET.dimensions.W;
+  document.getElementById('dD').value = DEFAULT_PRESET.dimensions.D;
+  document.getElementById('dH').value = DEFAULT_PRESET.dimensions.H;
+  document.getElementById('dT').value = DEFAULT_PRESET.dimensions.T;
+  document.getElementById('dGap').value = DEFAULT_PRESET.dimensions.gap;
+
+  state = JSON.parse(JSON.stringify(DEFAULT_PRESET.faceStates));
+  buildPanels();
+}
+
+function hitEdgeRect(mx, my, cw, ch){
+  const zoneX = cw * 0.25;
+  const zoneY = ch * 0.25;
+  const dLeft  = mx;
+  const dRight = cw - mx;
+  const dTop   = my;
+  const dBot   = ch - my;
+  const dMin   = Math.min(dLeft, dRight, dTop, dBot);
+  if(dMin > Math.min(zoneX, zoneY)) return null;
+  if(dMin === dTop)   return 'N';
+  if(dMin === dBot)   return 'S';
+  if(dMin === dLeft)  return 'W';
+  if(dMin === dRight) return 'E';
+  return null;
+}
+
+/* Vector math helpers */
+function cross(a,b){return {x:a.y*b.z-a.z*b.y, y:a.z*b.x-a.x*b.z, z:a.x*b.y-a.y*b.x}}
+
+/*=====================================================================
+  3️⃣ 3D GEOMETRY BUILDERS (3D Box Assembly)
+=====================================================================*/
+function buildGeometry(dims, boxState){
+  const {W, D, H, T} = dims;
+  const explode = parseFloat(document.getElementById('explodeRange').value) || 0;
+  const expScale = 1.0 + (explode / 50.0);
+
+  const faceNormals = {
+    front:  {x: 0,  y: 0,  z: 1},
+    back:   {x: 0,  y: 0,  z:-1},
+    left:   {x:-1,  y: 0,  z: 0},
+    right:  {x: 1,  y: 0,  z: 0},
+    top:    {x: 0,  y: 1,  z: 0},
+    bottom: {x: 0,  y:-1,  z: 0}
+  };
+
+  const facesGeom = [];
+
+  FACES.forEach(faceInfo => {
+    const fid = faceInfo.id;
+    const fs = boxState[fid];
+    if(!fs) return;
+
+    const normal = faceNormals[fid];
+    
+    const cx = normal.x * (W / 2) * expScale;
+    const cy = normal.y * (H / 2) * expScale;
+    const cz = normal.z * (D / 2) * expScale;
+
+    const polys = [];
+
+    let fw = (faceInfo.wKey==='W') ? W : D;
+    let fh = (faceInfo.hKey==='H') ? H : D;
+
+    const localToWorld = (u2d, v2d) => {
+      const lx = u2d - fw / 2;
+      const ly = v2d - fh / 2;
+      let wx=0, wy=0, wz=0;
+
+      if(fid==='front'){       wx = cx + lx; wy = cy + ly; wz = cz; }
+      else if(fid==='back'){   wx = cx - lx; wy = cy + ly; wz = cz; }
+      else if(fid==='left'){   wx = cx;      wy = cy + ly; wz = cz - lx; }
+      else if(fid==='right'){  wx = cx;      wy = cy + ly; wz = cz + lx; }
+      else if(fid==='top'){    wx = cx + lx; wy = cy;      wz = cz - ly; }
+      else if(fid==='bottom'){ wx = cx + lx; wy = cy;      wz = cz + ly; }
+
+      return {x: wx, y: wy, z: wz};
+    };
+
+    const p1 = localToWorld(T, T);
+    const p2 = localToWorld(fw - T, T);
+    const p3 = localToWorld(fw - T, fh - T);
+    const p4 = localToWorld(T, fh - T);
+    polys.push({ pts:[p1, p2, p3, p4], isTab: false, isBase: true });
+
+    const edges = ['N', 'S', 'E', 'W'];
+    edges.forEach(edge => {
+      const {isTab, fingers} = fs[edge];
+      const step = (edge==='N' || edge==='S') ? (fw / fingers) : (fh / fingers);
+
+      for(let i=0; i<fingers; i++){
+        const tabHere = isTab ? (i % 2 === 0) : (i % 2 !== 0);
+        if(!tabHere) continue;
+
+        const start = i * step;
+        const end = (i + 1) * step;
+
+        let uStart=0, uEnd=0, vStart=0, vEnd=0;
+
+        if(edge==='N'){
+          uStart = start; uEnd = end;
+          vStart = fh - T; vEnd = fh;
+        } else if(edge==='S'){
+          uStart = fw - start; uEnd = fw - end;
+          vStart = 0; vEnd = T;
+        } else if(edge==='E'){
+          uStart = fw - T; uEnd = fw;
+          vStart = start; vEnd = end;
+        } else if(edge==='W'){
+          uStart = 0; uEnd = T;
+          vStart = fh - start; vEnd = fh - end;
+        }
+
+        const t1 = localToWorld(uStart, vStart);
+        const t2 = localToWorld(uEnd, vStart);
+        const t3 = localToWorld(uEnd, vEnd);
+        const t4 = localToWorld(uStart, vEnd);
+
+        polys.push({ pts:[t1, t2, t3, t4], isTab: true, isBase: false });
+      }
+    });
+
+    facesGeom.push({ id: fid, polys: polys });
+  });
+
+  return facesGeom;
+}
+
+/*=====================================================================
+  4️⃣ CAMERA & PROJECTION SYSTEM
+=====================================================================*/
+function getViewMatrix(){
+  const x = camera.target.x + camera.radius * Math.sin(camera.elevation) * Math.sin(camera.azimuth);
+  const y = camera.target.y + camera.radius * Math.cos(camera.elevation);
+  const z = camera.target.z + camera.radius * Math.sin(camera.elevation) * Math.cos(camera.azimuth);
+  const eye = {x, y, z};
+  const up = {x: 0, y: 1, z: 0};
+
+  let zx = eye.x - camera.target.x;
+  let zy = eye.y - camera.target.y;
+  let zz = eye.z - camera.target.z;
+  let lenZ = Math.sqrt(zx*zx + zy*zy + zz*zz) || 1;
+  zx /= lenZ; zy /= lenZ; zz /= lenZ;
+
+  let xx = up.y*zz - up.z*zy;
+  let xy = up.z*zx - up.x*zz;
+  let xz = up.x*zy - up.y*zx;
+  let lenX = Math.sqrt(xx*xx + xy*xy + xz*xz) || 1;
+  xx /= lenX; xy /= lenX; xz /= lenX;
+
+  const yx = zy*xz - zz*xy;
+  const yy = zz*xx - zx*xz;
+  const yz = zx*xy - zy*xx;
+
+  return [
+    xx, yx, zx, 0,
+    xy, yy, zy, 0,
+    xz, yz, zz, 0,
+    -(xx*eye.x + xy*eye.y + xz*eye.z),
+    -(yx*eye.x + yy*eye.y + yz*eye.z),
+    -(zx*eye.x + zy*eye.y + zz*eye.z),
+    1
+  ];
+}
+
+function project(p, viewMat, canvas){
+  const { width, height } = canvas;
+  const x = viewMat[0]*p.x + viewMat[4]*p.y + viewMat[8]*p.z + viewMat[12];
+  const y = viewMat[1]*p.x + viewMat[5]*p.y + viewMat[9]*p.z + viewMat[13];
+  const z = viewMat[2]*p.x + viewMat[6]*p.y + viewMat[10]*p.z + viewMat[14];
+
+  let ndcX, ndcY;
+  const usePerspective = document.getElementById('perspectiveProj') ? document.getElementById('perspectiveProj').checked : true;
+
+  if(usePerspective){
+    const fovRad = camera.fov;
+    const f = 1.0 / Math.tan(fovRad / 2);
+    const aspect = width / height;
+    ndcX = (x * f) / (aspect * -z);
+    ndcY = (y * f) / -z;
+  } else {
+    const size = camera.radius * 0.4;
+    ndcX = x / size;
+    ndcY = y / size;
+  }
+
+  return {
+    x: (ndcX + 1) * 0.5 * width,
+    y: (1 - ndcY) * 0.5 * height,
+    z: z
+  };
+}
+/*=====================================================================
+  5️⃣ 2D ORTHOGRAPHIC COMPILER & CANVAS DRAWER (MATCHES AUTOCAD STYLE)
+=====================================================================*/
+function drawPanel(canvas, face, dims, highlightEdge){
+  const ctx = canvas.getContext('2d');
+  const CW = canvas.width, CH = canvas.height;
+  ctx.clearRect(0,0,CW,CH);
+
+  const {T} = dims;
+  const fs = state[face.id];
+  if(!fs) return;
+
+  const pw = (face.wKey==='W') ? dims.W : dims.D;
+  const ph = (face.hKey==='H') ? dims.H : dims.D;
+
+  // Canvas is already proportionally sized — fill with small pad
+  const pad = 14;
+  const scaleX = (CW - pad*2) / pw;
+  const scaleY = (CH - pad*2) / ph;
+  const scale  = Math.min(scaleX, scaleY);
+  const ox = (CW - pw*scale) / 2;
+  const oy = (CH - ph*scale) / 2;
+
+  // Convert mm point → canvas pixel (Y flipped: mm y=0 at bottom)
+  function px(x, y){ return { x: ox + x*scale, y: oy + (ph - y)*scale }; }
+
+  // Build perimeter exactly as writeFingerEdge in downloadSCR:
+  // Walk S(left→right) → E(bottom→top) → N(right→left) → W(top→bottom)
+  function fingerEdgePts(x1, y1, axis, outDir, edgeSize, isTab, fingers){
+    const fs2 = edgeSize / fingers;
+    const depth = outDir * T;
+    const pts = [];
+    for(let i=0; i<fingers; i++){
+      const tabHere = isTab ? (i%2===0) : (i%2!==0);
+      if(axis==='H'){
+        const xA=x1+i*fs2, xB=x1+(i+1)*fs2, bY=y1;
+        if(i===0) pts.push({x:xA, y:bY});
+        if(tabHere){
+          pts.push({x:xA, y:bY+depth});
+          pts.push({x:xB, y:bY+depth});
+          pts.push({x:xB, y:bY});
+        } else {
+          pts.push({x:xB, y:bY});
+        }
+      } else {
+        const yA=y1+i*fs2, yB=y1+(i+1)*fs2, bX=x1;
+        if(i===0) pts.push({x:bX, y:yA});
+        if(tabHere){
+          pts.push({x:bX+depth, y:yA});
+          pts.push({x:bX+depth, y:yB});
+          pts.push({x:bX,       y:yB});
+        } else {
+          pts.push({x:bX, y:yB});
+        }
+      }
+    }
+    return pts;
+  }
+
+  // Generate edge point arrays (same coords as SCR output)
+  const ptsS = fingerEdgePts(0,  0,  'H', -1, pw, fs.S.isTab, fs.S.fingers);
+  const ptsE = fingerEdgePts(pw, 0,  'V', +1, ph, fs.E.isTab, fs.E.fingers);
+  const ptsN = fingerEdgePts(pw, ph, 'H', +1, pw, fs.N.isTab, fs.N.fingers); // right→left
+  const ptsW = fingerEdgePts(0,  ph, 'V', -1, ph, fs.W.isTab, fs.W.fingers); // top→bottom
+
+  // North walks right→left so x1=pw, step = -fw/fingers
+  // Rebuild N and W correctly reversed
+  function fingerEdgePtsRev(x1, y1, axis, outDir, edgeSize, isTab, fingers){
+    const fs2 = edgeSize / fingers;
+    const depth = outDir * T;
+    const pts = [];
+    for(let i=0; i<fingers; i++){
+      const tabHere = isTab ? (i%2===0) : (i%2!==0);
+      if(axis==='H'){
+        // right→left: xA = x1 - i*fs2
+        const xA=x1-i*fs2, xB=x1-(i+1)*fs2, bY=y1;
+        if(i===0) pts.push({x:xA, y:bY});
+        if(tabHere){
+          pts.push({x:xA, y:bY+depth});
+          pts.push({x:xB, y:bY+depth});
+          pts.push({x:xB, y:bY});
+        } else {
+          pts.push({x:xB, y:bY});
+        }
+      } else {
+        // top→bottom: yA = y1 - i*fs2
+        const yA=y1-i*fs2, yB=y1-(i+1)*fs2, bX=x1;
+        if(i===0) pts.push({x:bX, y:yA});
+        if(tabHere){
+          pts.push({x:bX+depth, y:yA});
+          pts.push({x:bX+depth, y:yB});
+          pts.push({x:bX,       y:yB});
+        } else {
+          pts.push({x:bX, y:yB});
+        }
+      }
+    }
+    return pts;
+  }
+
+  const ptsNr = fingerEdgePtsRev(pw, ph, 'H', +1, pw, fs.N.isTab, fs.N.fingers);
+  const ptsWr = fingerEdgePtsRev(0,  ph, 'V', -1, ph, fs.W.isTab, fs.W.fingers);
+
+  // Assemble full perimeter: S → E → N(rev) → W(rev)
+  const perim = [...ptsS, ...ptsE, ...ptsNr, ...ptsWr];
+
+  // Background
+  ctx.fillStyle = '#f7f5f2';
+  ctx.fillRect(0,0,CW,CH);
+
+  // Draw perimeter
+  ctx.beginPath();
+  const p0 = px(perim[0].x, perim[0].y);
+  ctx.moveTo(p0.x, p0.y);
+  for(let i=1; i<perim.length; i++){
+    const p = px(perim[i].x, perim[i].y);
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+
+  ctx.fillStyle = 'rgba(26,111,186,0.05)';
+  ctx.fill();
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'miter';
+  ctx.stroke();
+
+  // Colour tabs blue, slots red along the perimeter
+  const edgePts = {
+    S: ptsS, E: ptsE, N: ptsNr, W: ptsWr
+  };
+  Object.entries(edgePts).forEach(([edge, epts])=>{
+    const {isTab, fingers} = fs[edge];
+    const segLen = Math.ceil(epts.length / fingers); // points per finger
+    const isHL = (edge === highlightEdge);
+    for(let i=0; i<fingers; i++){
+      const tabHere = isTab ? (i%2===0) : (i%2!==0);
+      const seg = epts.slice(i*segLen, (i+1)*segLen);
+      if(seg.length < 2) continue;
+      ctx.beginPath();
+      const sp = px(seg[0].x, seg[0].y);
+      ctx.moveTo(sp.x, sp.y);
+      seg.slice(1).forEach(pt=>{ const p=px(pt.x,pt.y); ctx.lineTo(p.x,p.y); });
+      ctx.strokeStyle = isHL
+        ? '#e67e22'
+        : (tabHere ? TAB_COL : SLOT_COL);
+      ctx.lineWidth = isHL ? 3.5 : 2.5;
+      ctx.stroke();
+    }
+  });
+}
+
+/*=====================================================================
+  6️⃣ 3D ISOMETRIC RENDER LOOP
+=====================================================================*/
+function renderScene(){
+  const canvas = document.getElementById('isoCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const viewMat = getViewMatrix();
+
+  // 1. Calculate the Camera's actual 3D position in World Space
+  const x = camera.target.x + camera.radius * Math.sin(camera.elevation) * Math.sin(camera.azimuth);
+  const y = camera.target.y + camera.radius * Math.cos(camera.elevation);
+  const z = camera.target.z + camera.radius * Math.sin(camera.elevation) * Math.cos(camera.azimuth);
+  const cameraEye = { x, y, z };
+
+  // 2. Group geometry by Face ID and compute each panel's true 3D centroid
+  const faceGroups = {};
+  FACES.forEach(f => {
+    faceGroups[f.id] = { id: f.id, polys: [], sumWorldX: 0, sumWorldY: 0, sumWorldZ: 0, ptCount: 0 };
+  });
+
+  geometry.forEach(fg => {
+    if (!faceGroups[fg.id]) return;
+    
+    fg.polys.forEach(poly => {
+      // Accumulate world 3D positions to find the exact middle of this panel
+      poly.pts.forEach(p => {
+        faceGroups[fg.id].sumWorldX += p.x;
+        faceGroups[fg.id].sumWorldY += p.y;
+        faceGroups[fg.id].sumWorldZ += p.z;
+        faceGroups[fg.id].ptCount++;
+      });
+
+      // Project 3D points to 2D screen space for drawing
+      const projPts = poly.pts.map(p => project(p, viewMat, canvas));
+
+      faceGroups[fg.id].polys.push({
+        pts: projPts,
+        isTab: poly.isTab,
+        isBase: poly.isBase
+      });
+    });
+  });
+
+  // 3. Calculate distance from camera eye to each panel's center
+  const facesWithDistance = Object.values(faceGroups).map(faceGroup => {
+    let distance = 0;
+    if (faceGroup.ptCount > 0) {
+      const centerX = faceGroup.sumWorldX / faceGroup.ptCount;
+      const centerY = faceGroup.sumWorldY / faceGroup.ptCount;
+      const centerZ = faceGroup.sumWorldZ / faceGroup.ptCount;
+
+      // Classic Euclidean distance formula in 3D: d = sqrt(dx² + dy² + dz²)
+      const dx = centerX - cameraEye.x;
+      const dy = centerY - cameraEye.y;
+      const dz = centerZ - cameraEye.z;
+      distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    }
+    return {
+      ...faceGroup,
+      camDistance: distance
+    };
+  });
+
+  // 4. Sort panels: FURTHEST away from camera painted first, CLOSEST painted last
+  const sortedFaces = facesWithDistance.sort((a, b) => b.camDistance - a.camDistance);
+
+  // 5. Draw the panels in the correct order
+  sortedFaces.forEach(faceGroup => {
+    // Within each panel, draw the large base plate first, then joint tabs on top
+    const sortedPolys = faceGroup.polys.sort((a, b) => (a.isBase === b.isBase) ? 0 : a.isBase ? -1 : 1);
+
+    sortedPolys.forEach(pf => {
+      ctx.beginPath();
+      ctx.moveTo(pf.pts[0].x, pf.pts[0].y);
+      for(let i = 1; i < pf.pts.length; i++){
+        ctx.lineTo(pf.pts[i].x, pf.pts[i].y);
+      }
+      ctx.closePath();
+
+      // Color coding (base plates vs tabs/slots)
+      if(pf.isBase){
+        ctx.fillStyle = 'rgba(230, 224, 215, 0.9)';
+      } else {
+        ctx.fillStyle = state[faceGroup.id] && state[faceGroup.id].isTab ? 'rgba(26,111,186,0.85)' : 'rgba(192,57,43,0.85)';
+      }
+      ctx.fill();
+
+      // Stroke outline
+      ctx.strokeStyle = '#2c3e50';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  });
+}
+/*=====================================================================
+  7️⃣ ORTHOGRAPHIC 2D INTERACTIVE PANELS GENERATOR
+=====================================================================*/
+function buildPanels(){
+  const dims = getDims();
+  const {W, D, H, T} = dims;
+  
+  // Use the panel zoom slider (zoomRange), not the 3D camera zoom
+  const zoomEl = document.getElementById('zoomRange');
+  const zoomPx = zoomEl ? parseFloat(zoomEl.value) : 220;
+  const maxDim = Math.max(W, D, H);
+  const pxPerMm = zoomPx / maxDim;
+  const pxW = Math.round(W * pxPerMm);
+  const pxD = Math.round(D * pxPerMm);
+  const pxH = Math.round(H * pxPerMm);
+  
+  const grid = document.getElementById('panelsGrid');
+  if(!grid) return;
+  
+  grid.innerHTML = '';
+  // CARD_OVERHEAD: name + dims labels height above canvas + cell padding
+  const CARD_OVERHEAD = 56; // px
+  const GAP = 8;
+  grid.style.setProperty('--col-left',   (pxD + 30 + GAP*2) + 'px');
+  grid.style.setProperty('--col-front',  (pxW + 30 + GAP*2) + 'px');
+  grid.style.setProperty('--col-right',  (pxD + 30 + GAP*2) + 'px');
+  grid.style.setProperty('--col-back',   (pxW + 30 + GAP*2) + 'px');
+  grid.style.setProperty('--row-top',    (pxD + 30 + CARD_OVERHEAD + GAP*2) + 'px');
+  grid.style.setProperty('--row-mid',    (pxH + 30 + CARD_OVERHEAD + GAP*2) + 'px');
+  grid.style.setProperty('--row-bottom', (pxD + 30 + CARD_OVERHEAD + GAP*2) + 'px');
+
+  const FACE_PX = {
+    top:    { cw: pxW, ch: pxD },
+    bottom: { cw: pxW, ch: pxD },
+    front:  { cw: pxW, ch: pxH },
+    back:   { cw: pxW, ch: pxH },
+    left:   { cw: pxD, ch: pxH },
+    right:  { cw: pxD, ch: pxH },
+  };
+
+  FACES.forEach(face => {
+    if(!state[face.id]) {
+      state[face.id] = JSON.parse(JSON.stringify(DEFAULT_PRESET.faceStates[face.id]));
+    }
+    const fs = state[face.id];
+    const {cw, ch} = FACE_PX[face.id];
+    
+    const cell = document.createElement('div');
+    cell.className = `ortho-cell ortho-cell-${face.id}`;
+    
+    const wrap = document.createElement('div');
+    wrap.className = 'panel-wrap';
+    wrap.id = `wrap_${face.id}`;
+    wrap.style.width = (cw + 30) + 'px';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'panel-name';
+    nameDiv.textContent = face.label;
+    
+    const dimsDiv = document.createElement('div');
+    dimsDiv.className = 'panel-dims';
+    dimsDiv.textContent = `${Math.round(face.wKey==='W'?W:D)} x ${Math.round(face.hKey==='H'?H:D)} mm`;
+    
+    const cv = document.createElement('canvas');
+    cv.className = 'panel';
+    cv.width = cw + 30;
+    cv.height = ch + 30;
+    
+    const hint = document.createElement('div');
+    hint.className = 'panel-hint';
+    hint.id = `hint_${face.id}`;
+    hint.style.display = 'none';
+    
+    wrap.appendChild(nameDiv);
+    wrap.appendChild(dimsDiv);
+    wrap.appendChild(cv);
+    wrap.appendChild(hint);
+    cell.appendChild(wrap);
+    grid.appendChild(cell);
+
+    drawPanel(cv, face, dims, null);
+
+    wrap._activeEdge = null;
+    wrap._focused = false;
+
+    wrap.addEventListener('mouseenter', () => { wrap._focused = true; });
+    wrap.addEventListener('mouseleave', () => {
+      wrap._focused = false;
+      wrap._activeEdge = null;
+      drawPanel(cv, face, dims, null);
+    });
+
+    cv.addEventListener('mousemove', (e) => {
+      const rect = cv.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const edge = hitEdgeRect(mx, my, cv.width, cv.height);
+      if(edge !== wrap._activeEdge){
+        wrap._activeEdge = edge;
+        drawPanel(cv, face, dims, edge);
+      }
+    });
+
+    cv.addEventListener('click', () => {
+      if(!wrap._activeEdge) return;
+      const edgeObj = fs[wrap._activeEdge];
+      edgeObj.isTab = !edgeObj.isTab;
+      drawPanel(cv, face, dims, wrap._activeEdge);
+      geometry = buildGeometry(getDims(), state);
+      needsRender = true;
+      renderScene();
+    });
+
+    cv.addEventListener('wheel', (e) => {
+      if(!wrap._activeEdge) return;
+      e.preventDefault();
+      const edgeObj = fs[wrap._activeEdge];
+      const delta = e.deltaY < 0 ? 1 : -1;
+      edgeObj.fingers = Math.max(1, Math.min(9, edgeObj.fingers + delta));
+      drawPanel(cv, face, dims, wrap._activeEdge);
+      geometry = buildGeometry(getDims(), state);
+      needsRender = true;
+      renderScene();
+    }, {passive:false});
+  });
+
+  geometry = buildGeometry(dims, state);
+  needsRender = true;
+  renderScene();
+}
+
+/*=====================================================================
+  8️⃣ CAMERA INTERACTION SYSTEM
+=====================================================================*/
+(function(){
+  const cv = document.getElementById('isoCanvas');
+  if(!cv) return;
+  let isDragging = false;
+  let lastX=0, lastY=0;
+
+  cv.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+
+  window.addEventListener('mouseup', () => { isDragging = false; });
+
+  window.addEventListener('mousemove', (e) => {
+    if(!isDragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    camera.azimuth   -= dx * 0.007;
+    // ALLOW UNDER-VIEWING: Changed upper limit from "Math.PI/2 - 0.1" to "Math.PI - 0.1"
+    camera.elevation = Math.max(0.1, Math.min(Math.PI - 0.1, camera.elevation - dy * 0.007));
+    needsRender = true;
+    renderScene();
+  });
+})();
+
+/*=====================================================================
+  9️⃣ IO EXPORT/IMPORT & AUTOCAD/SVG COMPILER
+=====================================================================*/
+function exportProject() {
+  const dims = getDims();
+  const projectData = { dimensions: dims, faceStates: state };
+  const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `finger_box_project_${dims.W}x${dims.D}x${dims.H}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function triggerFileInput() {
+  document.getElementById('fileInput').click();
+}
+
+function importProject(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.dimensions && imported.faceStates) {
+        document.getElementById('dW').value = imported.dimensions.W;
+        document.getElementById('dD').value = imported.dimensions.D;
+        document.getElementById('dH').value = imported.dimensions.H;
+        document.getElementById('dT').value = imported.dimensions.T;
+        document.getElementById('dGap').value = imported.dimensions.gap;
+        state = imported.faceStates;
+        buildPanels();
+      }
+    } catch(err) {
+      alert("Invalid JSON format");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function downloadSVG() {
+  const dims = getDims();
+  const { W, D, H, T, gap } = dims;
+
+  const layout = [
+    { face:'top',    pw:W, ph:D },
+    { face:'bottom', pw:W, ph:D },
+    { face:'front',  pw:W, ph:H },
+    { face:'back',   pw:W, ph:H },
+    { face:'left',   pw:D, ph:H },
+    { face:'right',  pw:D, ph:H },
+  ];
+
+  // writeFingerEdge: IDENTICAL to downloadSCR — returns array of {x,y} points
+  // Coordinate system: x right, y up (same as SCR). y=0 = bottom of panel.
+  function fingerEdge(x1, y1, axis, outDir, edgeSize, isTab, fingers) {
+    const fs = edgeSize / fingers;
+    const depth = outDir * T;
+    const pts = [];
+    for(let i=0; i<fingers; i++){
+      const tabHere = isTab ? (i%2===0) : (i%2!==0);
+      if(axis === 'H'){
+        const xA=x1+i*fs, xB=x1+(i+1)*fs, bY=y1;
+        if(i===0) pts.push({x:xA, y:bY});
+        if(tabHere){
+          pts.push({x:xA, y:bY+depth});
+          pts.push({x:xB, y:bY+depth});
+          pts.push({x:xB, y:bY});
+        } else {
+          pts.push({x:xB, y:bY});
+        }
+      } else {
+        const yA=y1+i*fs, yB=y1+(i+1)*fs, bX=x1;
+        if(i===0) pts.push({x:bX, y:yA});
+        if(tabHere){
+          pts.push({x:bX+depth, y:yA});
+          pts.push({x:bX+depth, y:yB});
+          pts.push({x:bX,       y:yB});
+        } else {
+          pts.push({x:bX, y:yB});
+        }
+      }
+    }
+    return pts;
+  }
+
+  // Beam/LightBurn: width/height in mm, viewBox in 0.1mm units
+  const U   = 10;
+  const margin = 10; // mm around everything
+
+  const totalW = layout.reduce((s,l)=>s+l.pw,0) + gap*(layout.length-1) + margin*2 + T*2;
+  const totalH = Math.max(...layout.map(l=>l.ph)) + T*2 + margin*2;
+  const VW = Math.round(totalW * U);
+  const VH = Math.round(totalH * U);
+
+  // SVG Y is flipped vs SCR: svgY = (totalH - y) * U
+  function pt(x, y){
+    return `${parseFloat((x*U).toFixed(2))},${parseFloat(((totalH - y)*U).toFixed(2))}`;
+  }
+
+  let cutPaths   = '';
+  let labelTexts = '';
+  let curX = margin + T;
+
+  layout.forEach(({ face, pw, ph }) => {
+    const fs = state[face];
+    if(!fs) return;
+
+    // SCR origin: ox,oy = bottom-left of panel (y=0 at bottom, same as SCR curX/oy=0)
+    const ox = curX;
+    const oy = margin + T; // bottom of panel in mm from SVG bottom
+
+    // Walk perimeter exactly as downloadSCR:
+    // S: left→right, outDir=-1 (tabs go below, y decreases)
+    // N: left→right, outDir=+1 (tabs go above, y increases)
+    // W: bottom→top, outDir=-1 (tabs go left, x decreases)
+    // E: bottom→top, outDir=+1 (tabs go right, x increases)
+    const pS = fingerEdge(ox,    oy,    'H', -1, pw, fs.S.isTab, fs.S.fingers);
+    const pN = fingerEdge(ox,    oy+ph, 'H', +1, pw, fs.N.isTab, fs.N.fingers);
+    const pW = fingerEdge(ox,    oy,    'V', -1, ph, fs.W.isTab, fs.W.fingers);
+    const pE = fingerEdge(ox+pw, oy,    'V', +1, ph, fs.E.isTab, fs.E.fingers);
+
+    // Build closed perimeter path: start BL, go S(right), SE corner, E(up), NE corner, N(left-rev), NW corner, W(down-rev)
+    const d = [];
+
+    // Start: bottom-left
+    d.push('M ' + pt(pS[0].x, pS[0].y));
+
+    // South edge: left → right (all points)
+    pS.forEach((p,i) => { if(i>0) d.push('L ' + pt(p.x, p.y)); });
+
+    // East edge: bottom → top
+    pE.forEach((p,i) => { if(i>0) d.push('L ' + pt(p.x, p.y)); });
+
+    // North edge: right → left (reverse)
+    const pNrev = [...pN].reverse();
+    pNrev.forEach(p => d.push('L ' + pt(p.x, p.y)));
+
+    // West edge: top → bottom (reverse)
+    const pWrev = [...pW].reverse();
+    pWrev.forEach(p => d.push('L ' + pt(p.x, p.y)));
+
+    d.push('Z');
+
+    cutPaths += `  <path id="panel_${face}"
+    fill="none" stroke="#ff0000" stroke-width="0.1"
+    vector-effect="non-scaling-stroke"
+    d="${d.join(' ')}" />
+`;
+
+    // Label in centre
+    const lx = parseFloat(((ox + pw/2)*U).toFixed(2));
+    const ly = parseFloat(((totalH - (oy + ph/2))*U).toFixed(2));
+    labelTexts += `  <text id="label_${face}" x="${lx}" y="${ly}"
+    text-anchor="middle" dominant-baseline="middle"
+    font-family="system-ui" font-size="${parseFloat((4*U).toFixed(2))}"
+    fill="#aaa">${face.toUpperCase()} ${pw}x${ph}mm</text>
+`;
+
+    curX += pw + gap;
+  });
+
+  const svgContent =
+`<?xml version="1.0" encoding="UTF-8"?>
+<!-- Finger joint box W=${W} D=${D} H=${H} T=${T}mm -->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="${totalW}mm" height="${totalH}mm"
+     viewBox="0 0 ${VW} ${VH}">
+  <g id="cut-lines" inkscape:label="cutting">
+${cutPaths}  </g>
+  <g id="labels" inkscape:label="labels">
+${labelTexts}  </g>
+</svg>`;
+
+  const blob = new Blob([svgContent], { type:'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `box_${W}x${D}x${H}_T${T}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+
+function downloadSCR(){
+  const dims = getDims();
+  const {W,D,H,T,gap} = dims;
+  const commands = [];
+
+  function writeFingerEdge(x1, y1, axis, outDir, edgeSize, isTab, fingers) {
+    const fs = edgeSize / fingers;
+    const depth = outDir * T;
+    
+    commands.push('LINE');
+    for(let i=0; i<fingers; i++){
+      const tabHere = isTab ? (i%2===0) : (i%2!==0);
+      if(axis === 'H'){
+        const xA = x1 + i*fs, xB = x1 + (i+1)*fs, bY = y1;
+        if(i === 0) commands.push('_non', `${xA.toFixed(4)},${bY.toFixed(4)}`);
+        
+        if(tabHere){
+          commands.push('_non', `${xA.toFixed(4)},${(bY+depth).toFixed(4)}`);
+          commands.push('_non', `${xB.toFixed(4)},${(bY+depth).toFixed(4)}`);
+          commands.push('_non', `${xB.toFixed(4)},${bY.toFixed(4)}`);
+        } else {
+          commands.push('_non', `${xB.toFixed(4)},${bY.toFixed(4)}`);
+        }
+      } else {
+        const yA = y1 + i*fs, yB = y1 + (i+1)*fs, bX = x1;
+        if(i === 0) commands.push('_non', `${bX.toFixed(4)},${yA.toFixed(4)}`);
+        
+        if(tabHere){
+          commands.push('_non', `${(bX+depth).toFixed(4)},${yA.toFixed(4)}`);
+          commands.push('_non', `${(bX+depth).toFixed(4)},${yB.toFixed(4)}`);
+          commands.push('_non', `${bX.toFixed(4)},${yB.toFixed(4)}`);
+        } else {
+          commands.push('_non', `${bX.toFixed(4)},${yB.toFixed(4)}`);
+        }
+      }
+    }
+    commands.push('');
+  }
+
+  const layout = [
+    { face:'top',    pw:W, ph:D },
+    { face:'bottom', pw:W, ph:D },
+    { face:'front',  pw:W, ph:H },
+    { face:'back',   pw:W, ph:H },
+    { face:'left',   pw:D, ph:H },
+    { face:'right',  pw:D, ph:H },
+  ];
+
+  let curX = 0;
+  layout.forEach(({face,pw,ph})=>{
+    const fs = state[face];
+    if(!fs) return;
+    const ox=curX, oy=0;
+    
+    writeFingerEdge(ox,    oy,    'H',-1,pw,fs.S.isTab,fs.S.fingers);
+    writeFingerEdge(ox,    oy+ph, 'H',+1,pw,fs.N.isTab,fs.N.fingers);
+    writeFingerEdge(ox,    oy,    'V',-1,ph,fs.W.isTab,fs.W.fingers);
+    writeFingerEdge(ox+pw, oy,    'V',+1,ph,fs.E.isTab,fs.E.fingers);
+    
+    curX += pw + gap;
+  });
+
+  commands.push('','');
+  const blob=new Blob([commands.join('\n')],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='box_finger_joints_flat.scr';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+
+function downloadIsometricSCR() {
+  const dims = getDims();
+  const { W, D, H } = dims;
+
+  const commands = [
+    '; AutoCAD 3D Isometric Script',
+    'COLOR 3',
+    'OSNAP NONE'
+  ];
+
+  geometry.forEach(fg => {
+    fg.polys.forEach(poly => {
+      const p = poly.pts;
+      if (p.length < 4) return;
+      commands.push(
+        `3DPOLY ${p[0].x},${p[0].y},${p[0].z} ` +
+        `${p[1].x},${p[1].y},${p[1].z} ` +
+        `${p[2].x},${p[2].y},${p[2].z} ` +
+        `${p[3].x},${p[3].y},${p[3].z} C`
+      );
+    });
+  });
+
+  commands.push('', 'ZOOM E', '');
+
+  const blob = new Blob([commands.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `box_isometric_assembly_${W}x${D}x${H}.scr`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/*=====================================================================
+  10️⃣ CONTROLS REBINDING & EVENT LISTENERS
+=====================================================================*/
+['dW','dD','dH','dT','dGap'].forEach(id=>{
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('change',()=>{ 
+      buildPanels(); 
+      needsRender = true;
+    });
+  }
+});
+
+const zoomRange = document.getElementById('cameraZoomRange');
+if (zoomRange) {
+  zoomRange.addEventListener('input', (e) => {
+    const size = e.target.value;
+    const zoomVal = document.getElementById('zoomValue');
+    if (zoomVal) zoomVal.textContent = `${size}px`;
+    buildPanels();
+  });
+}
+
+if (document.getElementById('perspectiveProj')) {
+  document.getElementById('perspectiveProj').addEventListener('change', () => { 
+    needsRender = true; 
+    renderScene();
+  });
+}
+
+if (document.getElementById('explodeRange')) {
+  document.getElementById('explodeRange').addEventListener('input', () => {
+    geometry = buildGeometry(getDims(), state);
+    needsRender = true;
+    renderScene();
+  });
+}
+
+if (document.getElementById('isoZoomRange')) {
+  document.getElementById('isoZoomRange').addEventListener('input', (e) => {
+    // A smaller radius means the camera is closer (zoomed in)
+    camera.radius = parseFloat(e.target.value);
+    
+    // Recalculate 3D geometry and redraw
+    geometry = buildGeometry(getDims(), state);
+    needsRender = true;
+    renderScene();
+  });
+}
+
+
+/*=====================================================================
+  11️⃣ INITIALIZE
+=====================================================================*/
+(function(){
+  const cv = document.getElementById('isoCanvas');
+  if(!cv) return;
+  const ro = new ResizeObserver(entries => {
+    for(const e of entries){
+      const w = Math.round(e.contentRect.width);
+      const h = Math.round(e.contentRect.height);
+      if(cv.width !== w || cv.height !== h){
+        cv.width  = w || 800;
+        cv.height = h || 340;
+        renderScene();
+      }
+    }
+  });
+  ro.observe(cv);
+})();
+
+// Load Default State on Launch
+state = JSON.parse(JSON.stringify(DEFAULT_PRESET.faceStates));
+buildPanels();
+</script>
+</body>
+</html>
