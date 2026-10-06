@@ -215,15 +215,18 @@ canvas.panel {
 .conv-status .err{color:#c0392b}
 .conv-status .warn{color:#b9770e}
 .conv-preview img{max-width:100%;max-height:220px;background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:4px}
-.help-link{font-size:13px;margin:-0.75rem 0 1.25rem}
-.help-link a{color:#1a6fba;text-decoration:none;font-weight:500}
-.help-link a:hover{text-decoration:underline}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:1.25rem}
+.app-header h1{margin-bottom:0}
+.help-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;font-size:14px;font-weight:600;color:#fff;background:#c4302b;border-radius:999px;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:background .15s,transform .15s}
+.help-btn:hover{background:#a52520;transform:translateY(-1px)}
 </style>
 </head>
 <body>
 
-<h1>Finger joint box configurator</h1>
-<p class="help-link">▶ <a href="https://youtu.be/qFbyIKMTrOU" target="_blank" rel="noopener noreferrer">Watch the video: how to use this app</a></p>
+<div class="app-header">
+  <h1>Finger joint box configurator</h1>
+  <a class="help-btn" href="https://youtu.be/qFbyIKMTrOU" target="_blank" rel="noopener noreferrer" title="Watch a short video explaining how to use this app">▶ How to use?</a>
+</div>
 
 <div class="controls-container">
   <div class="dims">
